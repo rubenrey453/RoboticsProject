@@ -88,6 +88,15 @@ void odomCallback(const nav_msgs::Odometry::ConstPtr& o) {
         }*/
             //getchar();
     }
+    cond_rotation = 0;
+            ROS_INFO("(rotation_node) rotation_to_do: %f", rotation_to_do*180/M_PI);
+            ROS_INFO("(rotation_node) rotation_done: %f", rotation_done*180/M_PI);
+
+            std_msgs::Float32 msg_rotation_done;
+            msg_rotation_done.data = rotation_done;
+            ROS_INFO("(rotation_node) rotation_done : %f", msg_rotation_done.data*180/M_PI);
+
+            pub_rotation_done.publish(msg_rotation_done);//we sent the rotation_done to decision_node;
  }
 
 void rotation_to_doCallback(const std_msgs::Float32::ConstPtr & a) {
