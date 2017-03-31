@@ -62,16 +62,22 @@ void odomCallback(const nav_msgs::Odometry::ConstPtr& o) {
         twist.angular.z = 0;
 
         ROS_INFO("(rotation_node) rotation_done: %f, rotation_to_do: %f", rotation_done*180/M_PI, rotation_to_do*180/M_PI);
-
-        /*if ( rotation_to_do has not been reached  ) {
-         *
-         * float kp, ep, ki, ei, kd, ed;
-         *
-         * implementation of a PID controller
-         *
+        float threshold=0.01;
+        if ( rotation_to_do-threshold >= rotation_done || rotation_to_do+threshold <= rotation_done ) {
+        
+          float kp, ep, ki, ei, kd, ed;
+         
+          //implementation of a PID controller
+         
             ep = (rotation_to_do - rotation_done);//the current error is the difference between the rotation_to_do (ie, the angle to reach) and the rotation_done (ie, the current angle)
 
-            twist.angular.z *= kp * ep + ki * ei + kd * ed;;
+            kp=1.0;
+            ki=0.0;
+            ei=0.0;
+            kd=0.0;
+            ed=0.0;
+            twist.angular.z = kp * ep;
+           // twist.angular.z *= kp * ep + ki * ei + kd * ed;;
 
             pub_cmd_vel.publish(twist);
         }
@@ -85,18 +91,10 @@ void odomCallback(const nav_msgs::Odometry::ConstPtr& o) {
             ROS_INFO("(rotation_node) rotation_done : %f", msg_rotation_done.data*180/M_PI);
 
             pub_rotation_done.publish(msg_rotation_done);//we sent the rotation_done to decision_node;
-        }*/
+        }
             //getchar();
     }
-    cond_rotation = 0;
-            ROS_INFO("(rotation_node) rotation_to_do: %f", rotation_to_do*180/M_PI);
-            ROS_INFO("(rotation_node) rotation_done: %f", rotation_done*180/M_PI);
-
-            std_msgs::Float32 msg_rotation_done;
-            msg_rotation_done.data = rotation_done;
-            ROS_INFO("(rotation_node) rotation_done : %f", msg_rotation_done.data*180/M_PI);
-
-            pub_rotation_done.publish(msg_rotation_done);//we sent the rotation_done to decision_node;
+    
  }
 
 void rotation_to_doCallback(const std_msgs::Float32::ConstPtr & a) {
