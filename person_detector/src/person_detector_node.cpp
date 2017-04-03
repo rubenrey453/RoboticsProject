@@ -54,12 +54,14 @@ private:
     int nb_moving_person;
     geometry_msgs::Point position_moving_person[1000];
 
+    int published;
     int goal_reached;
 
 public:
 
     person_detector() {
-
+        published=0;
+        goal_reached=0;
         pub_person_detector = n.advertise<visualization_msgs::Marker>("person_detector",
                                                                       1); // Preparing a topic to publish our results. This will be used by the visualization tool rviz
 
@@ -71,6 +73,7 @@ public:
         sub_goal_reached = n.subscribe("goal_reached", 1, &person_detector::goal_reachedCallback, this);
 
         goal_reached = 1;
+        published=0;
         first_scan = 1;
 
     }
@@ -366,7 +369,9 @@ public:
 //within all the moving person in the environment, we have to choose one that we will follow
 
         ROS_INFO("choose_goal");
-        if(nb_moving_person>0) {
+        if(nb_moving_person>0 && published==0) {
+            published=1;
+            goal_reached=0;
             pub_goal_to_reach.publish(position_moving_person[0]);
             printf("%f %f \n",position_moving_person[0].x,position_moving_person[0].y);
             ROS_INFO("publishing point %f ",position_moving_person[0].x);

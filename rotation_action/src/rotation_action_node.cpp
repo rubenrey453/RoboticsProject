@@ -62,7 +62,7 @@ void odomCallback(const nav_msgs::Odometry::ConstPtr& o) {
         twist.angular.z = 0;
 
         ROS_INFO("(rotation_node) rotation_done: %f, rotation_to_do: %f", rotation_done*180/M_PI, rotation_to_do*180/M_PI);
-        float threshold=0.01;
+        float threshold=0.05;
         if ( rotation_to_do-threshold >= rotation_done || rotation_to_do+threshold <= rotation_done ) {
         
           float kp, ep, ki, ei, kd, ed;
