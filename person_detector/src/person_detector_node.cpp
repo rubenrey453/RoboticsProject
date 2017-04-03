@@ -82,17 +82,29 @@ public:
 
     }
 
-    geometry_msgs::Point averagePoints(int point1, int point2) {
-        int sumX = 0, sumY = 0, nbPoint = 0;
+   void averagePoints(int point1, int point2,geometry_msgs::Point *p) {
+        float sumX = 0, sumY = 0; int nbPoint = 0;
         for (int i = point1; i <= point2; i++) {
             sumX += current_scan[i].x;
             sumY += current_scan[i].y;
             nbPoint++;
         }
-        geometry_msgs::Point p;
-        p.x = sumX / nbPoint;
-        p.y = sumY / nbPoint;
-        return p;
+
+        p->x = sumX / (float)nbPoint;
+        p->y = sumY / (float)nbPoint;
+    }
+
+    void averagePoints2(int point1, int point2,geometry_msgs::Point *p) {
+        float sumX = 0, sumY = 0; int nbPoint = 0;
+        
+            sumX += center_cluster[point1].x;
+            sumY += center_cluster[point1].y;
+
+            sumX += center_cluster[point2].x;
+            sumY += center_cluster[point2].y;
+
+        p->x = sumX / 2.0;
+        p->y = sumY / 2.0;
     }
 
 
@@ -254,7 +266,7 @@ public:
             if (distancePoints(current_scan[i], current_scan[i - 1]) > threshold) {
                 //create a new Cluster
                 end_cluster = i - 1;
-                center_cluster[nb_cluster] = averagePoints(start_cluster, end_cluster);
+                averagePoints(start_cluster, end_cluster,&center_cluster[nb_cluster]);
                 size_cluster[nb_cluster] = distancePoints(current_scan[end_cluster], current_scan[start_cluster]);
                 dynamic_cluster[nb_cluster] = ((float) nb_dynamic) / ((float) (i - start_cluster));
 
@@ -270,7 +282,7 @@ public:
             }
         }
         end_cluster = i;
-        center_cluster[nb_cluster] = averagePoints(start_cluster, end_cluster);
+        averagePoints(start_cluster, end_cluster,&center_cluster[nb_cluster]);
         size_cluster[nb_cluster] = distancePoints(current_scan[end_cluster], current_scan[start_cluster]);
         dynamic_cluster[nb_cluster] = ((float) nb_dynamic) / ((float) (i - start_cluster));
 
@@ -304,6 +316,7 @@ public:
                         current_colors[loop2].a = 1.0;
                     }
                 }
+                printf("%f %f\n", center_cluster[loop].x,center_cluster[loop].y);
             } else {
                 moving_leg[loop] = 0;
             }
@@ -326,8 +339,9 @@ public:
             if(moving_leg[loop]==1) {
                 for (loop2 = loop + 1; loop2 < nb_cluster; loop2++) {
                     if(moving_leg[loop2]==1) {
-                        if (distancePoints(center_cluster[loop], center_cluster[loop2]) <= 1.5) {
-                            position_moving_person[nb_moving_person] = averagePoints(loop, loop2);
+                        if (distancePoints(center_cluster[loop], center_cluster[loop2]) <= 0.5) {
+                            averagePoints2(loop, loop2,&position_moving_person[nb_moving_person]);
+                            //position_moving_person[nb_moving_person]=center_cluster[loop];
                             nb_moving_person++;
                             for (loop3 = 0; loop3 < nb_beams; loop3++) {
                                 if (cluster[loop3] == loop || cluster[loop3] == loop2) {
@@ -354,6 +368,8 @@ public:
         ROS_INFO("choose_goal");
         if(nb_moving_person>0) {
             pub_goal_to_reach.publish(position_moving_person[0]);
+            printf("%f %f \n",position_moving_person[0].x,position_moving_person[0].y);
+            ROS_INFO("publishing point %f ",position_moving_person[0].x);
         }
 
         populateMarkerTopic(nb_beams, current_scan, current_colors);
