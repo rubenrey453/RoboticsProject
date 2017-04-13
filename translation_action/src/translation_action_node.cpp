@@ -8,10 +8,17 @@
 #include "nav_msgs/Odometry.h"
 #include <tf/transform_datatypes.h>
 
+// We use the already built messages types
+#include <geometry_msgs/Twist.h>
+
 using namespace std;
+
+#define detection_range 0.05
 
 class translation_action {
 private:
+
+    ros::Subscriber sub_scan;
 
     ros::NodeHandle n;
 
@@ -32,6 +39,9 @@ private:
 public:
 
 translation_action() {
+
+     // receive data of laserscanner
+    sub_scan = n.subscribe("scan", 1, &translation_action::scanCallback, this);
 
     // communication with cmd_vel
     pub_cmd_vel = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
@@ -119,7 +129,35 @@ void translation_to_doCallback(const std_msgs::Float32::ConstPtr & r) {
 
 }
 
+void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan) {
+//the robot moves in translation at 1meter per second and stops if it perceives an obstacle at less than 1meter in angle between -20degrees and +20degrees
+    ROS_INFO("--Listening to scan:");
+
+    int obstacle = 0;
+    int loop = 342;//starting angle at about -20 degrees
+
+    float beam_angle = scan->angle_min + scan->angle_increment*loop;
+
+    while ( ( loop <= 465 ) && not ( obstacle ) ) {//we stop if there an obstacle at less than 1 meter between -20 degres and +20degres
+        obstacle = ( scan->ranges[loop] < 1 ) && ( scan->ranges[loop] > scan->range_min );
+        if ( obstacle ){
+            ROS_INFO("obstacle detected at %f where the distance is %f", beam_angle*180/M_PI, scan->ranges[loop]);
+            ROS_WARN("------------------obstacle detected---------------------------");
+            ROS_INFO("(translation_node) translation_done: %f", translation_done);
+            
+            cond_translation = 0;
+            std_msgs::Float32 msg_translation_done;
+            msg_translation_done.data = translation_done;
+            pub_translation_done.publish(msg_translation_done);//we sent the translation_done to decision_node;
+        }
+        loop++;
+        beam_angle += scan->angle_increment;
+    } 
+
+}
+
 };
+
 
 
 int main(int argc, char **argv){

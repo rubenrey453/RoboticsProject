@@ -63,7 +63,7 @@ public:
         published=0;
         goal_reached=0;
         pub_person_detector = n.advertise<visualization_msgs::Marker>("person_detector",
-                                                                      1); // Preparing a topic to publish our results. This will be used by the visualization tool rviz
+                                                    1); // Preparing a topic to publish our results. This will be used by the visualization tool rviz
 
         sub_scan = n.subscribe("scan", 1, &person_detector::scanCallback, this);
 
@@ -369,6 +369,7 @@ public:
 //within all the moving person in the environment, we have to choose one that we will follow
 
         ROS_INFO("choose_goal");
+        printf("%d %d", nb_moving_person,published);
         if(nb_moving_person>0 && published==0) {
             published=1;
             goal_reached=0;
@@ -387,7 +388,7 @@ public:
         ROS_INFO("--Listening to scan:");
         ROS_INFO("goal_reached = %d", goal_reached);
         ROS_INFO("first_scan = %d", first_scan);
-
+        printf("%d", goal_reached);
         if (goal_reached) {
 
             ROS_INFO("Timestamp: %d", scan->header.seq);
