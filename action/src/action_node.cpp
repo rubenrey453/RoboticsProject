@@ -29,11 +29,13 @@ private:
     ros::Publisher pub_goal_reached;
     ros::Subscriber sub_goal_to_reach;
 
-    int cond_action = 0;
+    int cond_action;
     int action_done;
 
     float translation_to_do, translation_done;
     float rotation_to_do, rotation_done;
+
+    geometry_msgs::Point goal_to_reach;
 
 public:
 
@@ -44,8 +46,8 @@ public:
 
         // communication with odometry
         pub_change_odometry = n.advertise<geometry_msgs::Point>("change_odometry", 1);
-        sub_odometry = n.subscribe("odom", 1, &rotation_action::odomCallback, this);
-        cond_rotation = 0;
+        sub_odometry = n.subscribe("odom", 1, &action::odomCallback, this);
+        cond_action = 0;
 
         // communication with decision
         pub_goal_reached = n.advertise<geometry_msgs::Point>("goal_reached", 1);
@@ -55,6 +57,18 @@ public:
     }
 
     void odomCallback(const nav_msgs::Odometry::ConstPtr &o) {
+
+        float posX=o->pose.pose.position.x;
+        float posY=o->pose.pose.position.y;
+
+        //we compute the translation_to_do
+        translation_to_do = sqrt( pow(( goal_to_reach.x - posX),2) + pow(( goal_to_reach.y -posY ),2) );
+
+        //we compute the rotation_to_do
+        rotation_to_do = acos( (goal_to_reach.x-posX) / translation_to_do );
+
+        if ( goal_to_reach.y < 0 )
+            rotation_to_do *=-1;
 
         rotation_done = tf::getYaw(o->pose.pose.orientation);
         float tx = o->pose.pose.position.x;
@@ -123,7 +137,7 @@ public:
                 pub_cmd_vel.publish(twist);
                 twistToPublish = 0;
             } else {
-                cond_rotation = 0;
+                cond_action = 0;
                 ROS_INFO("(rotation_node) rotation_to_do: %f", rotation_to_do * 180 / M_PI);
                 ROS_INFO("(rotation_node) rotation_done: %f", rotation_done * 180 / M_PI);
 
@@ -131,26 +145,22 @@ public:
                 msg_rotation_done.data = rotation_done;
                 ROS_INFO("(rotation_node) rotation_done : %f", msg_rotation_done.data * 180 / M_PI);
 
-                pub_rotation_done.publish(msg_rotation_done);//we sent the rotation_done to decision_node;
+                pub_action_done.publish(msg_rotation_done);//we sent the rotation_done to decision_node;
             }
             //getchar();
         }
 
     }
 
-    void goal_to_reachCallback(const std_msgs::Float32::ConstPtr &a) {
-// process the rotation to do received from the decision node
+    void goal_to_reachCallback(const geometry_msgs::Point::ConstPtr& g) {
 
-        ROS_INFO("\n(action_node) processing the action received from the decision node");
-        //getchar();
-        rotation_to_do = a->data;
+        if ( !cond_action ) {//we do not accept new goal if the current goal is not reached
+            goal_to_reach.x = g->x;
+            goal_to_reach.y = g->y;
 
-        ROS_INFO("(action_node) goal_to_reach (%f, %f)", goal_to_reach.x, goal_to_reach.y);
-        //getchar();
-        cond_action = 1;//we will perform a rotation
+            ROS_INFO("(action_node) goal_to_reach (%f, %f)", goal_to_reach.x, goal_to_reach.y);
 
-        action_done = 0;
-
+        }
         //reset odometry
         geometry_msgs::Point p;
         p.x = 0;
