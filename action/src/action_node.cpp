@@ -74,9 +74,9 @@ public:
         float tx = o->pose.pose.position.x;
         float ty = o->pose.pose.position.y;
         translation_done = sqrt((tx * tx) + (ty * ty));
-        ROS_INFO("(action_node) action_done %f", rotation_done * 180 / M_PI);
 
         if (cond_action) {
+
             geometry_msgs::Twist twist;
             twist.linear.x = 0;
             twist.linear.y = 0;
@@ -86,8 +86,10 @@ public:
             twist.angular.y = 0;
             twist.angular.z = 0;
 
-            ROS_INFO("(rotation_node) rotation_done: %f, rotation_to_do: %f", rotation_done * 180 / M_PI,
+            ROS_INFO("(action_node) rotation_done: %f, rotation_to_do: %f", rotation_done * 180 / M_PI,
                      rotation_to_do * 180 / M_PI);
+            ROS_INFO("(action_node) translation_done: %f, translation_to_do: %f", translation_done / M_PI,
+                     translation_to_do);
             float threshold = 0.1;
 
             //boolean to say if the twist changed
@@ -157,6 +159,8 @@ public:
         if ( !cond_action ) {//we do not accept new goal if the current goal is not reached
             goal_to_reach.x = g->x;
             goal_to_reach.y = g->y;
+
+            cond_action=1;
 
             ROS_INFO("(action_node) goal_to_reach (%f, %f)", goal_to_reach.x, goal_to_reach.y);
 
