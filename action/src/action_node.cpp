@@ -62,7 +62,7 @@ public:
         float posY=o->pose.pose.position.y;
 
         //we compute the translation_to_do
-        translation_to_do = sqrt( pow(( goal_to_reach.x - posX),2) + pow(( goal_to_reach.y -posY ),2) );
+        translation_to_do = sqrt( pow(( goal_to_reach.x - posX),2) + pow(( goal_to_reach.y - posY ),2) );
 
         //we compute the rotation_to_do
         rotation_to_do = acos( (goal_to_reach.x-posX) / translation_to_do );
@@ -88,14 +88,14 @@ public:
 
             ROS_INFO("(action_node) rotation_done: %f, rotation_to_do: %f", rotation_done * 180 / M_PI,
                      rotation_to_do * 180 / M_PI);
-            ROS_INFO("(action_node) translation_done: %f, translation_to_do: %f", translation_done / M_PI,
+            ROS_INFO("(action_node) translation_done: %f, translation_to_do: %f", translation_done,
                      translation_to_do);
-            float threshold = 0.1;
+            float threshold = 0.01;
 
             //boolean to say if the twist changed
-            int twistToPublish = 0;
+            int twistToPublish = 0.;
 
-            if (rotation_to_do - threshold >= rotation_done || rotation_to_do + threshold <= rotation_done) {
+            if (rotation_to_do - rotation_done >= threshold || rotation_to_do -rotation_done  <= -threshold) {
 
                 float kp, ep, ki, ei, kd, ed;
 
@@ -109,15 +109,15 @@ public:
                 ei = 0.0;
                 kd = 0.0;
                 ed = 0.0;
-                //twist.angular.z = kp * ep;
-                twist.angular.z *= kp * ep + ki * ei + kd * ed;
+                twist.angular.z = kp * ep;
+                //twist.angular.z *= kp * ep + ki * ei + kd * ed;
                 twistToPublish = 1;
 
             }
-            threshold = 0.2;
+            threshold = 0.5;
 
-            if (translation_to_do - threshold >= translation_done ||
-                translation_to_do + threshold <= translation_done) {
+            if (translation_to_do-translation_done >= threshold ||
+                translation_to_do-translation_done  <= -threshold) {
 
                 float kp, ep, ki, ei, kd, ed;
 
@@ -130,24 +130,23 @@ public:
                 kd = 0.0;
                 ed = 0.0;
 
-                //twist.linear.x = kp * ep;
-                twist.linear.x *= kp * ep + ki * ei + kd * ed;
+                twist.linear.x = kp * ep;
+                //twist.linear.x *= kp * ep + ki * ei + kd * ed;
                 twistToPublish = 1;
             }
 
-            if (twistToPublish) {
+            if (twistToPublish==1) {
                 pub_cmd_vel.publish(twist);
                 twistToPublish = 0;
             } else {
                 cond_action = 0;
-                ROS_INFO("(rotation_node) rotation_to_do: %f", rotation_to_do * 180 / M_PI);
-                ROS_INFO("(rotation_node) rotation_done: %f", rotation_done * 180 / M_PI);
+                ROS_INFO("(action_node) goal_to_reach: %f %f", goal_to_reach.x, goal_to_reach.y);
+                ROS_INFO("(action_node) current point: %f %f", posX, posY);
 
-                std_msgs::Float32 msg_rotation_done;
-                msg_rotation_done.data = rotation_done;
-                ROS_INFO("(rotation_node) rotation_done : %f", msg_rotation_done.data * 180 / M_PI);
+                std_msgs::Float32 msg_action_done;
+                msg_action_done.data = 1;
 
-                pub_action_done.publish(msg_rotation_done);//we sent the rotation_done to decision_node;
+                pub_action_done.publish(msg_action_done);//we sent the rotation_done to decision_node;
             }
             //getchar();
         }
